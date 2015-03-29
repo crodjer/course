@@ -46,8 +46,7 @@ class Apply f => Applicative f where
   (a -> b)
   -> f a
   -> f b
-(<$>) =
-  error "todo"
+f <$> x = (pure f) <*> x
 
 -- | Insert into Id.
 --
@@ -56,8 +55,7 @@ instance Applicative Id where
   pure ::
     a
     -> Id a
-  pure =
-    error "todo"
+  pure = Id
 
 -- | Insert into a List.
 --
@@ -66,8 +64,7 @@ instance Applicative List where
   pure ::
     a
     -> List a
-  pure =
-    error "todo"
+  pure = (:. Nil)
 
 -- | Insert into an Optional.
 --
@@ -76,8 +73,7 @@ instance Applicative Optional where
   pure ::
     a
     -> Optional a
-  pure =
-    error "todo"
+  pure = Full
 
 -- | Insert into a constant function.
 --
@@ -86,8 +82,7 @@ instance Applicative ((->) t) where
   pure ::
     a
     -> ((->) t a)
-  pure =
-    error "todo"
+  pure = const
 
 -- | Sequences a list of structures to a structure of list.
 --
@@ -109,8 +104,8 @@ sequence ::
   Applicative f =>
   List (f a)
   -> f (List a)
-sequence =
-  error "todo"
+sequence = foldRight foldingFunction (pure Nil)
+  where foldingFunction x acc = (:.) <$> x <*> acc
 
 -- | Replicate an effect a given number of times.
 --
@@ -133,8 +128,8 @@ replicateA ::
   Int
   -> f a
   -> f (List a)
-replicateA =
-  error "todo"
+replicateA 0 _ = pure Nil
+replicateA n a = (:.) <$> a <*> replicateA (n - 1) a
 
 -- | Filter a list with a predicate that produces an effect.
 --
@@ -161,8 +156,11 @@ filtering ::
   (a -> f Bool)
   -> List a
   -> f (List a)
-filtering =
-  error "todo"
+filtering pre = foldRight foldingFunction (pure Nil)
+  where foldingFunction x acc = (selector x) <$> (pre x) <*> acc
+        selector x y ys
+          | y         = x :. ys
+          | otherwise = ys
 
 -----------------------
 -- SUPPORT LIBRARIES --
