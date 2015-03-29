@@ -210,16 +210,16 @@ between =
 --
 -- /Tip:/ Use `between` and `charTok`.
 --
--- λ> parse (betweenCharTok '[' ']' character) "[a]"
+-- >>> parse (betweenCharTok '[' ']' character) "[a]"
 -- Result >< 'a'
 --
--- λ> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc]")
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc]")
 -- True
 --
--- λ> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc")
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc")
 -- True
 --
--- λ> isErrorResult (parse (betweenCharTok '[' ']' character) "abc]")
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "abc]")
 -- True
 betweenCharTok ::
   Char
@@ -231,7 +231,7 @@ betweenCharTok =
 
 -- | Write a function that parses 4 hex digits and return the character value.
 --
--- /Tip:/ Use `readHex`, `isHexDigit`, `replicate`, `satisfy` and the monad instance.
+-- /Tip:/ Use `readHex`, `isHexDigit`, `replicateA`, `satisfy` and the monad instance.
 --
 -- >>> parse hex "0010"
 -- Result >< '\DLE'
