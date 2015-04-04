@@ -2,6 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TupleSections #-}
+
 
 module Course.FileIO where
 
@@ -62,8 +64,7 @@ the contents of c
 -- /Tip:/ use @getArgs@ and @run@
 main ::
   IO ()
-main =
-  error "todo"
+main = getArgs >>= (\(fp :. _) -> return fp) >>= readFile >>= run
 
 type FilePath =
   Chars
@@ -72,31 +73,31 @@ type FilePath =
 run ::
   Chars
   -> IO ()
-run =
-  error "todo"
+run text = do
+  getFiles (lines text) >>= printFiles
+  return ()
 
 getFiles ::
   List FilePath
   -> IO (List (FilePath, Chars))
-getFiles =
-  error "todo"
+getFiles = sequence . map getFile
 
 getFile ::
   FilePath
   -> IO (FilePath, Chars)
-getFile =
-  error "todo"
+getFile p = readFile p >>= return . (p,) -- (p,) works by TupleSections
 
 printFiles ::
   List (FilePath, Chars)
   -> IO ()
-printFiles =
-  error "todo"
+printFiles files = sequence (map print files) >> return ()
+  where print (fp, t) = printFile fp t
 
 printFile ::
   FilePath
   -> Chars
   -> IO ()
-printFile =
-  error "todo"
-
+printFile fp text = do
+  putStrLn $ (take (12 :: Integer) $ repeat '=') ++ (' ' :. fp)
+  _ <- sequence $ map putStrLn (lines text)
+  return ()
