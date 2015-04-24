@@ -209,6 +209,9 @@ isHappy ::
 isHappy n = eval isHappyS S.empty
   where isHappyS :: State (S.Set Integer) Bool
         isHappyS = (return $ contains 1) <*> findM find' (produce sumSq n)
-        sumSq = toInteger . sum  . (map ((P.^ 2) . digitToInt)) . listh . show
+        sumSq = toInteger . sum  . (map ((join (*)) . digitToInt)) . listh . show
         find' x = get >>= \s ->
           put (x `S.insert` s) >> return (1 `S.member` s || x `S.member` s)
+
+-- Note: join (*) here works by using ((->) t) as a Monad while considering (*)
+-- as a -> (a -> a) and (a -> a) as two Monadic values.
