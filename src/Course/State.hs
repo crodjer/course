@@ -14,6 +14,8 @@ import Course.Apply
 import Course.Applicative
 import Course.Bind
 import Course.Monad
+
+import Data.Char
 import qualified Data.Set as S
 
 -- $setup
@@ -41,8 +43,8 @@ instance Functor (State s) where
     (a -> b)
     -> State s a
     -> State s b
-  (<$>) =
-      error "todo"
+  fn <$> st = State $ \s -> mapfn $ runState st s
+    where mapfn (a, s) = (fn a, s)
 
 -- | Implement the `Apply` instance for `State s`.
 -- >>> runState (pure (+1) <*> pure 0) 0
@@ -55,9 +57,9 @@ instance Apply (State s) where
   (<*>) ::
     State s (a -> b)
     -> State s a
-    -> State s b 
-  (<*>) =
-    error "todo"
+    -> State s b
+  fnst <*> st = State $ \s -> let (fn, s') = runState fnst s
+                              in runState (fn <$> st) s'
 
 -- | Implement the `Applicative` instance for `State s`.
 -- >>> runState (pure 2) 0
@@ -66,8 +68,7 @@ instance Applicative (State s) where
   pure ::
     a
     -> State s a
-  pure =
-    error "todo"
+  pure a = State $ \s -> (a, s)
 
 -- | Implement the `Bind` instance for `State s`.
 -- >>> runState ((const $ put 2) =<< put 1) 0
@@ -77,8 +78,9 @@ instance Bind (State s) where
     (a -> State s b)
     -> State s a
     -> State s b
-  (=<<) =
-    error "todo"
+  fn =<< st = State $ \s -> runFn $ runState st s
+    where
+      runFn (a, s') = runState (fn a) s'
 
 instance Monad (State s) where
 
@@ -89,8 +91,7 @@ exec ::
   State s a
   -> s
   -> s
-exec =
-  error "todo"
+exec st s = snd $ runState st s
 
 -- | Run the `State` seeded with `s` and retrieve the resulting value.
 --
@@ -99,8 +100,7 @@ eval ::
   State s a
   -> s
   -> a
-eval =
-  error "todo"
+eval st s = fst $ runState st s
 
 -- | A `State` where the state also distributes into the produced value.
 --
@@ -108,8 +108,7 @@ eval =
 -- (0,0)
 get ::
   State s s
-get =
-  error "todo"
+get = State $ \s -> (s, s)
 
 -- | A `State` where the resulting state is seeded with the given value.
 --
@@ -118,8 +117,7 @@ get =
 put ::
   s
   -> State s ()
-put =
-  error "todo"
+put s = State $ \_ -> ((), s)
 
 -- | Find the first element in a `List` that satisfies a given predicate.
 -- It is possible that no element is found, hence an `Optional` result.
@@ -140,8 +138,13 @@ findM ::
   (a -> f Bool)
   -> List a
   -> f (Optional a)
-findM =
-  error "todo"
+findM _ Nil        = return Empty
+findM fn (x :. xs) = do
+  found <- fn x
+  if found
+    then return $ (Full x)
+    else findM fn xs
+
 
 -- | Find the first element in a `List` that repeats.
 -- It is possible that no element repeats, hence an `Optional` result.
@@ -154,8 +157,15 @@ firstRepeat ::
   Ord a =>
   List a
   -> Optional a
-firstRepeat =
-  error "todo"
+firstRepeat ls = eval (firstRepeatS ls) S.empty
+  where firstRepeatS :: Ord a => List a -> State (S.Set a) (Optional a)
+        firstRepeatS Nil        = return Empty
+        firstRepeatS (x :. xs)  = do
+          existing <- get
+          if x `S.member` existing
+            then return $ Full x
+            else put (x `S.insert` existing) >> firstRepeatS xs
+
 
 -- | Remove all duplicate elements in a `List`.
 -- /Tip:/ Use `filtering` and `State` with a @Data.Set#Set@.
@@ -164,11 +174,17 @@ firstRepeat =
 --
 -- prop> distinct xs == distinct (flatMap (\x -> x :. x :. Nil) xs)
 distinct ::
-  Ord a =>
+    Ord a =>
   List a
   -> List a
-distinct =
-  error "todo"
+distinct ls = eval (distinctS ls) S.empty
+  where distinctS :: Ord a => List a -> State (S.Set a) (List a)
+        distinctS = filtering predicate
+        predicate x = get >>= \es ->
+          put (x `S.insert` es) >> return (not (x `S.member` es))
+          -- existing <- get
+          -- put (x `S.insert` existing)
+          -- return $ not (x `S.member` existing)
 
 -- | A happy number is a positive integer, where the sum of the square of its digits eventually reaches 1 after repetition.
 -- In contrast, a sad number (not a happy number) is where the sum of the square of its digits never reaches 1
@@ -191,8 +207,15 @@ distinct =
 --
 -- >>> isHappy 44
 -- True
+
 isHappy ::
   Integer
   -> Bool
-isHappy =
-  error "todo"
+isHappy n = eval isHappyS S.empty
+  where isHappyS :: State (S.Set Integer) Bool
+        isHappyS = (return $ contains 1) <*> findM find' (produce sumSq n)
+        sumSq = toInteger . sum  . (map ((P.^ 2) . digitToInt)) . listh . show
+        find' x = do
+          existing <- get
+          put (x `S.insert` existing)
+          return $ 1 `S.member` existing || x `S.member` existing
