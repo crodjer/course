@@ -158,14 +158,9 @@ firstRepeat ::
   List a
   -> Optional a
 firstRepeat ls = eval (firstRepeatS ls) S.empty
-  where firstRepeatS :: Ord a => List a -> State (S.Set a) (Optional a)
-        firstRepeatS Nil        = return Empty
-        firstRepeatS (x :. xs)  = do
-          existing <- get
-          if x `S.member` existing
-            then return $ Full x
-            else put (x `S.insert` existing) >> firstRepeatS xs
-
+  where firstRepeatS = findM finder
+        finder x = get >>= \s ->
+                            put (x `S.insert` s) >> return (x `S.member` s)
 
 -- | Remove all duplicate elements in a `List`.
 -- /Tip:/ Use `filtering` and `State` with a @Data.Set#Set@.
@@ -180,8 +175,8 @@ distinct ::
 distinct ls = eval (distinctS ls) S.empty
   where distinctS :: Ord a => List a -> State (S.Set a) (List a)
         distinctS = filtering predicate
-        predicate x = get >>= \es ->
-          put (x `S.insert` es) >> return (not (x `S.member` es))
+        predicate x = get >>= \s ->
+          put (x `S.insert` s) >> return (not (x `S.member` s))
           -- existing <- get
           -- put (x `S.insert` existing)
           -- return $ not (x `S.member` existing)
@@ -215,7 +210,5 @@ isHappy n = eval isHappyS S.empty
   where isHappyS :: State (S.Set Integer) Bool
         isHappyS = (return $ contains 1) <*> findM find' (produce sumSq n)
         sumSq = toInteger . sum  . (map ((P.^ 2) . digitToInt)) . listh . show
-        find' x = do
-          existing <- get
-          put (x `S.insert` existing)
-          return $ 1 `S.member` existing || x `S.member` existing
+        find' x = get >>= \s ->
+          put (x `S.insert` s) >> return (1 `S.member` s || x `S.member` s)
