@@ -338,7 +338,7 @@ produce fn a = (a :. Nil) ++ produce fn next
 notReverse ::
   List a
   -> List a
-notReverse = id
+notReverse = reverse
 
 ---- End of list exercises
 
